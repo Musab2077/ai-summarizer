@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq 
 import os
-import shutil
+import io
 from docx import Document
 from dotenv import load_dotenv
 
@@ -49,33 +49,36 @@ app.add_middleware(
 )
 
 @app.post("/document_reading")
-async def just_checking(file : UploadFile = File(...)):
-    file_name = file.filename.split('.')[0]
-    file_type = file.filename.split('.')[-1]
+async def just_checking(file: UploadFile = File(...)):
+    file_name = file.filename
+    file_type = file_name.split('.')[-1].lower()
+    
     try:
-        os.makedirs(file_name, exist_ok=True)
+        error = False
+        if file_type in ["docx", "doc"]:
+            content = await file.read()
+            
+            file_like = io.BytesIO(content)
+            
+            doc = Document(file_like)
+            all_text = ""
+            for para in doc.paragraphs:
+                if para.text.strip():
+                    all_text += para.text + "\n"
+            
+    except:
+        error = True
+    
     finally:
-        try:
-            error = False
-            file_location = os.path.join(file_name, file.filename)
-            with open(file_location, "wb") as buffer:
-                shutil.copyfileobj(file.file, buffer)
-            if file_type == "docx" or file_type == "doc":
-                doc = Document(file_location)
-                all_text = ""
-                for para in doc.paragraphs:
-                    if len(para.text) > 0:
-                        all_text = all_text + para.text + "\n"
-        except:
-            error = True
+        await file.close()
+        if error:
+            return {"error": f"Failed to process file: {file_name}"}
         
-        finally:
-            await file.close()
-            shutil.rmtree(file_name)
-            if error:
-                return "error"
-            else:
-                return {"filename": file.filename, "message": "File uploaded successfully", "text" : all_text}
+        return {
+                "filename": file_name,
+                "message": "File processed successfully",
+                "text": all_text.strip()
+            }
             
 @app.post('/summarization')
 def summarizing_the_document(arg: Doc):
