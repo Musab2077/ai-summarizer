@@ -37,7 +37,7 @@ app = FastAPI()
 
 origins = [
     "http://localhost:5173",
-    "https://ai-summarizzer.vercel.app"
+    "https://ai-summarizzer.vercel.app/"
 ]
 
 app.add_middleware(
