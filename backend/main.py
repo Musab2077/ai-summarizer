@@ -56,6 +56,7 @@ async def just_checking(file : UploadFile = File(...)):
         os.makedirs(file_name, exist_ok=True)
     finally:
         try:
+            error = False
             file_location = os.path.join(file_name, file.filename)
             with open(file_location, "wb") as buffer:
                 shutil.copyfileobj(file.file, buffer)
@@ -65,14 +66,16 @@ async def just_checking(file : UploadFile = File(...)):
                 for para in doc.paragraphs:
                     if len(para.text) > 0:
                         all_text = all_text + para.text + "\n"
-                        
-                return {"filename": file.filename, "message": "File uploaded successfully", "text" : all_text}
-        except Exception as e:
-            return {"error": str(e)}
+        except:
+            error = True
         
         finally:
             await file.close()
             shutil.rmtree(file_name)
+            if error:
+                return "error"
+            else:
+                return {"filename": file.filename, "message": "File uploaded successfully", "text" : all_text}
             
 @app.post('/summarization')
 def summarizing_the_document(arg: Doc):
