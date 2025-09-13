@@ -27,19 +27,17 @@ const Body = () => {
     const file = e.target.files[0];
     const formData = new FormData();
     formData.append("file", file);
-
     try {
-      const response = await axios.post(
-        `${backendUrl}/document_reading`,
-        formData,
-        {
+      await axios
+        .post(`${backendUrl}/document_reading`, formData, {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        }
-      );
-      setChooseFileRes(false);
-      setDocText(response.data.text);
+        })
+        .then((response) => {
+          setChooseFileRes(false);
+          setDocText(response.data.text);
+        });
     } catch (error) {
       console.error("Error uploading file:", error);
     }
