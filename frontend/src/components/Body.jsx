@@ -10,7 +10,7 @@ const Body = () => {
   const [chooseFileRes, setChooseFileRes] = useState(true);
   const [docText, setDocText] = useState("");
   const [summarizedText, setSummrizationText] = useState("");
-  const backendUrl = "http://127.0.0.1:8000";
+  const backendUrl = "https://backend-for-ai-summarizer.vercel.app";
 
   const handleSummarize = async () => {
     setSummrizationRes(false);
