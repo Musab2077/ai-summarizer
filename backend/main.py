@@ -1,10 +1,11 @@
-from fastapi import FastAPI,File,UploadFile
+from fastapi import FastAPI,File,UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_groq import ChatGroq 
 import os
 import io
+from pypdf import PdfReader
 from docx import Document
 from dotenv import load_dotenv
 
@@ -36,7 +37,7 @@ except:
 app = FastAPI()
 
 origins = [
-    "http://localhost:5173",
+    "http://localhost:5173/",
     "https://ai-summarizzer.vercel.app"
 ]
 
@@ -51,20 +52,39 @@ app.add_middleware(
 @app.post("/document_reading")
 async def just_checking(file: UploadFile = File(...)):
     file_name = file.filename
-    file_type = file_name.split('.')[-1].lower()
+    file_type = file_name.split('.')[-1].lower() if '.' in file_name else ''
     
     try:
         error = False
+        content = await file.read()
+
         if file_type in ["docx", "doc"]:
-            content = await file.read()
-            
             file_like = io.BytesIO(content)
-            
             doc = Document(file_like)
+
             all_text = ""
             for para in doc.paragraphs:
                 if para.text.strip():
                     all_text += para.text + "\n"
+
+        elif file_type == 'pdf':
+            file_like = io.BytesIO(content)
+            pdf_reader = PdfReader(file_like)
+            
+            all_text = ""
+            for page in pdf_reader.pages:
+                page_text = page.extract_text()
+                if page_text.strip():
+                    all_text += page_text + "\n"
+                    
+        elif file_type == "txt":
+            all_text = content.decode('utf-8')
+                    
+        else:
+            raise HTTPException(
+                status_code=400, 
+                detail="Unsupported file type. Only .docx, .doc, and .pdf files are supported."
+            )
             
     except:
         error = True
@@ -72,12 +92,13 @@ async def just_checking(file: UploadFile = File(...)):
     finally:
         await file.close()
         if error:
-            return {"error": f"Failed to process file: {file_name}"}
+            return {"error": f"Failed to process file: {file_name}", 'error_res' : error}
         
         return {
                 "filename": file_name,
                 "message": "File processed successfully",
-                "text": all_text.strip()
+                "text": all_text.strip(),
+                'error_res' : error
             }
             
 @app.post('/summarization')
