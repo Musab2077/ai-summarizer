@@ -35,8 +35,10 @@ const Body = () => {
           },
         })
         .then((response) => {
-          setChooseFileRes(false);
-          setDocText(response.data.text);
+          if (!response.data.error_res) {
+            setChooseFileRes(false);
+            setDocText(response.data.text);
+          }
         });
     } catch (error) {
       console.error("Error uploading file:", error);
