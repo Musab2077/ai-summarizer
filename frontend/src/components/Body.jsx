@@ -10,7 +10,8 @@ const Body = () => {
   const [chooseFileRes, setChooseFileRes] = useState(true);
   const [docText, setDocText] = useState("");
   const [summarizedText, setSummrizationText] = useState("");
-  const backendUrl = "https://backend-for-ai-summarizer.vercel.app";
+  const backendUrl = "http://127.0.0.1:8000";
+  // https://backend-for-ai-summarizer.vercel.app
 
   const handleSummarize = async () => {
     setSummrizationRes(false);
@@ -23,23 +24,30 @@ const Body = () => {
 
   const handleFile = async (e) => {
     if (!e.target.files || e.target.files.length === 0) return;
+    const size = e.target.files[0].size;
 
     const file = e.target.files[0];
     const formData = new FormData();
     formData.append("file", file);
     try {
-      await axios
-        .post(`${backendUrl}/document_reading`, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        })
-        .then((response) => {
-          if (!response.data.error_res) {
-            setChooseFileRes(false);
-            setDocText(response.data.text);
-          }
-        });
+      if (size < 600 * 1024) {
+        await axios
+          .post(`${backendUrl}/document_reading`, formData, {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          })
+          .then((response) => {
+            if (!response.data.error_res) {
+              setChooseFileRes(false);
+              setDocText(response.data.text);
+            }
+          });
+      }
+      else {
+        setChooseFileRes(false);
+        setDocText("File size should be smaller")
+      }
     } catch (error) {
       console.error("Error uploading file:", error);
     }
